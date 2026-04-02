@@ -265,25 +265,6 @@ class TW_ab ():
                     expr = pc.sum(terms)
                     problem.add_constraint(expr == ref)
 
-    def add_ns_constraints_P(self, P, problem):
-        # -------- No-signalling A --------
-        for x in range(self.kx):
-            for a in range(self.ma):
-                for y1 in range(self.ky):
-                    ref = sum(P[self.pos(a, b, x, y1)] for b in range(self.mb))
-                    for y2 in range(self.ky):
-                        expr = sum(P[self.pos(a, b, x, y2)] for b in range(self.mb))
-                        problem.add_constraint(expr == ref)
-
-        # -------- No-signalling B --------
-        for y in range(self.ky):
-            for b in range(self.mb):
-                for x1 in range(self.kx):
-                    ref = sum(P[self.pos(a, b, x1, y)] for a in range(self.ma))
-                    for x2 in range(self.kx):
-                        expr = sum(P[self.pos(a, b, x2, y)] for a in range(self.ma))
-                        problem.add_constraint(expr == ref)
-
        
    
     def normalization_twin(self, P_twin, problem, index_map):
@@ -315,17 +296,6 @@ class TW_ab ():
                     a, a_twin, b, b_twin,
                     x, x_twin, y, y_twin
                 )
-                terms.append(val)
-
-            problem.add_constraint(pc.sum(terms) == 1)
-
-    def normalization_P(self, P, problem):
-        for x, y in self.inputs:
-
-            terms = []
-
-            for a, b in self.outputs:
-                val = P[self.pos(a, b, x, y)]
                 terms.append(val)
 
             problem.add_constraint(pc.sum(terms) == 1)
@@ -593,9 +563,6 @@ class TW_ab ():
             self.add_ns_constraints( P_twin, problem, index_map)
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem,index_map)
-            self.add_ns_constraints_P( P, problem)
-            self.normalization_P(P, problem)
-
             I3322= (
                 # ---- Ees conjuntas ----
                 + self.P00(0,0,P) + self.P00(0,1,P) + self.P00(0,2,P)
@@ -617,6 +584,8 @@ class TW_ab ():
         """
         Calculates the maximum value of the I3322 inequality. Only valid for k = 3, m=2. 
         In this version a in (-1,1), so the local bound is 4.
+
+        https://arxiv.org/pdf/quant-ph/0306129
     
         Parameters
         ----------
@@ -651,7 +620,8 @@ class TW_ab ():
     def solve_I4422(self):
         """
         Calculates the maximum value of the I4422 inequality. Only valid for k = 2, m=2.
-    
+        https://arxiv.org/pdf/quant-ph/0306129
+        
         Parameters
         ----------
         none
@@ -666,8 +636,6 @@ class TW_ab ():
             index_map, n_vars = self.build_index_map()
             P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
             self.add_ns_constraints( P_twin, problem, index_map)
-            self.add_ns_constraints_P( P, problem)
-            self.normalization_P(P, problem)
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem, index_map)
             I4422= (
@@ -690,7 +658,8 @@ class TW_ab ():
     def solve_I2233(self):
         """
         Calculates the maximum value of the I2233 inequality. Only valid for k = 2, m=3.
-    
+        https://arxiv.org/pdf/quant-ph/0306129
+        
         Parameters
         ----------
         none
@@ -707,8 +676,6 @@ class TW_ab ():
             self.add_ns_constraints( P_twin, problem, index_map)
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem,index_map)
-            self.add_ns_constraints_P( P, problem)
-            self.normalization_P(P, problem)
 
             I2233= (
                 P[self.pos(0,0,0,0)] + P[self.pos(0,1,0,0)] +  P[self.pos(0,1,0,1)]
