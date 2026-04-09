@@ -516,6 +516,38 @@ class TW_ab ():
     def solve_CHSH(self):
         """
         Calculates the maximum value of the CHSH inequality. Only valid for k = 2, m=2.
+        In this version a in (0,1) so the local bound is 0
+    
+        Parameters
+        ----------
+        none
+    
+        Returns
+        -------
+        prints the maximum value of the CHSH inequality.
+        """
+        if (self.kx ==2 and self.ky == 2 and self.ma ==2 and self.mb ==2):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1) #Lower = 0 for P_i >0
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.add_ns_constraints( P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+
+            CHSH = self.P00(0,0,P) + self.P00(0,1,P) + self.P00(1,0,P) - self.P00(1,1,P) - self.PA0(0,P) - self.PB0(0,P)
+
+            problem.set_objective('max', CHSH)
+            problem.solve(solver=self.solver) 
+            print("Max value of CHSH:", CHSH.value)
+        else:
+            print("CHSH only defined for ma=mb=2 and kx=ky=2")
+
+
+    def solve_CHSH(self):
+        """
+        Calculates the maximum value of the CHSH inequality. Only valid for k = 2, m=2.
+        In this version a in (-1,1), so the local bound is 2.
     
         Parameters
         ----------
@@ -541,6 +573,7 @@ class TW_ab ():
             print("Max value of CHSH:", CHSH.value)
         else:
             print("CHSH only defined for ma=mb=2 and kx=ky=2")
+            
 
     def solve_I3322(self):
         """
