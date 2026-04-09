@@ -394,7 +394,7 @@ class TW_abe ():
                 for a_twin, b_twin, e_twin in self.outputs:
                     val = self.get_P_twin(
                         P_twin, index_map,
-                        a, a_twin, b, b_twin, e, _twin,
+                        a, a_twin, b, b_twin, e, e_twin,
                         x, x_twin, y, y_twin, z, z_twin
                     )
                     terms.append(val)
@@ -402,7 +402,7 @@ class TW_abe ():
                 problem.add_constraint(
                     P[self.pos(a, b, e, x, y, z)] == pc.sum(terms)
                 )
-    def E(x, y, z, P):
+    def E(self,x, y, z, P):
             return sum(((-1)**(a+b+e)) * P[self.pos(a, b, e, x, y, z)] for a in range(self.ma) for b in range(self.mb) for e in range(self.me))        
 
     def solve_Mermin(self):
