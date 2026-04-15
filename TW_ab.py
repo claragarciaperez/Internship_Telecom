@@ -20,7 +20,6 @@ class TW_ab ():
         Number of measurements/settings for Bob. Default is 3.
     solver : str, optional
         Solver used for linear programming. Default is 'mosek'.
-    
     """
     def __init__(self, ma=2, mb=2,  kx=3, ky=3,  solver = 'mosek'):
         self.ma = ma
@@ -544,7 +543,7 @@ class TW_ab ():
             print("CHSH only defined for ma=mb=2 and kx=ky=2")
 
 
-    def solve_CHSH(self):
+    def solve_CHSH_2(self):
         """
         Calculates the maximum value of the CHSH inequality. Only valid for k = 2, m=2.
         In this version a in (-1,1), so the local bound is 2.
@@ -597,19 +596,16 @@ class TW_ab ():
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem,index_map)
             I3322= (
-                # ---- Ees conjuntas ----
                 + self.P00(0,0,P) + self.P00(0,1,P) + self.P00(0,2,P)
                 + self.P00(1,0,P) + self.P00(1,1,P) - self.P00(1,2,P)
                 + self.P00(2,0,P) - self.P00(2,1,P)
-
-                # ---- marginales ----
                 - self.PA0(0,P) 
                 - 2*self.PB0(0,P) - self.PB0(1,P)
             )
 
             problem.set_objective('max', I3322)
             problem.solve(solver=self.solver) 
-            print("Valor máximo de I3322:", I3322.value)
+            print("Max value of I3322:", I3322.value)
         else:
             print("I3322 only defined for ma=mb=2 and kx=ky=3")
 
