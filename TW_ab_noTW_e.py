@@ -5,7 +5,7 @@ from itertools import product, combinations
 import scipy.sparse as sp
 import gurobipy
 #%%
-class TW_abe ():
+class TW_AB_E():
     """
     Class to solve inequalities given the TW.
     
@@ -25,15 +25,23 @@ class TW_abe ():
         Number of measurements/settings for Eve. Default is 3.
     solver : str, optional
         Solver used for linear programming. Default is 'mosek'.
+    BR: bool, optional
+        If True, applies BR constrain. Default is 'False'.
     
     """
-    def __init__(self, ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek'):
+    def __init__(self, ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek', BR = 'False'):
         self.ma = ma
         self.mb = mb
-        self.me = me
+        if BR:
+            self.me = me**2
+        else: 
+            self.me = me
         self.kx = kx
         self.ky = ky
-        self.kz = kz
+        if BR:
+            self.kz = kz**2
+        else: 
+            self.kz = kz
         self.outputs = list(product(range(ma), range(mb), range(me)))
         self.inputs = list(product(range(kx), range(ky), range(kz)))
         self.outputs_twin = list(product(range(ma),range(ma), range(mb), range(mb),range(me)))
@@ -374,6 +382,27 @@ class TW_abe ():
                 problem.add_constraint(
                     P[self.pos(a, b, e, x, y, z)] == pc.sum(terms)
                 )
+    def constrain_BR1(self,P, P_ab, problem):
+        for x,y,e in self.inputs:
+            for a in range(self.ma):
+                for b in range (self.mb):
+                    terms = []
+                    for e in range(self.me):
+                        terms.append(P[self.pos(a,b,e,x,y,z)])
+                    problem.add_constraint(pc.sum(terms) == P_ab[self.pos_ab(a,b,x,y)])
+    def pos_z(self,x,y):
+        return (x*self.ky + y)
+    
+    def pos_e(self,a,b):
+        return (a*self.mb + b)
+
+    def constrain_BR2(self,P, P_ab, problem):
+        for x in range(self.kx):
+            for y in range(self.ky):
+                z = self.pos_z(x,y)
+                for a ,b,e in self.outputs:
+                    if (self.pos_e(a,b) != e):
+                        problem.add_constraint(P[self.pos(a,b,e,x,y,z)] == 0)
 
     def E(self,x, y, z, P):
             return sum(((-1)**(a+b+e)) * P[self.pos(a, b, e, x, y, z)] for a in range(self.ma) for b in range(self.mb) for e in range(self.me))        
@@ -500,11 +529,199 @@ class TW_abe ():
             print("Max value of the inequality:", I.value)
         else:
             print("I^3_3 only defined for ma=mb=me=2 and kx=ky=kz=3")
+
+
+    def PA0(self, x, P):
+        """
+        Computes the marginal probability P(a=0 | x).
+    
+        Parameters
+        ----------
+        x : int
+            Setting of Alice.
+        P : array-like
+            Array containing joint probabilities P(a, b | x, y).
+    
+        Returns
+        -------
+        float
+            Marginal probability of Alice obtaining outcome 0 given setting x.
+        """
+        return sum(
+            sum(P[self.pos(0, b, x, y)] for b in range(self.mb))
+            for y in range(self.ky)
+        ) / self.ky
+    
+    
+    def PA1(self, x, P):
+        """
+        Computes the marginal probability P(a=1 | x).
+    
+        Parameters
+        ----------
+        x : int
+            Setting of Alice.
+        P : array-like
+            Array containing joint probabilities P(a, b | x, y).
+    
+        Returns
+        -------
+        float
+            Marginal probability of Alice obtaining outcome 1 given setting x.
+        """
+        return sum(
+            sum(P[self.pos(1, b, x, y)] for b in range(self.mb))
+            for y in range(self.ky)
+        ) / self.ky
+    
+    
+    def PB0(self, y, P):
+        """
+        Computes the marginal probability P(b=0 | y).
+    
+        Parameters
+        ----------
+        y : int
+            Setting of Bob.
+        P : array-like
+            Array containing joint probabilities P(a, b | x, y).
+    
+        Returns
+        -------
+        float
+            Marginal probability of Bob obtaining outcome 0 given setting y.
+        """
+        return sum(
+            sum(P[self.pos(a, 0, x, y)] for a in range(self.ma))
+            for x in range(self.kx)
+        ) / self.kx
+    
+    
+    def PB1(self, y, P):
+        """
+        Computes the marginal probability P(b=1 | y).
+    
+        Parameters
+        ----------
+        y : int
+            Setting of Bob.
+        P : array-like
+            Array containing joint probabilities P(a, b | x, y).
+    
+        Returns
+        -------
+        float
+            Marginal probability of Bob obtaining outcome 1 given setting y.
+        """
+        return sum(
+            sum(P[self.pos(a, 1, x, y)] for a in range(self.ma))
+            for x in range(self.kx)
+        ) / self.kx
+    
+    
+    def P00(self, x, y, P):
+        """
+        Returns the joint probability P(a=0, b=0 | x, y).
+    
+        Parameters
+        ----------
+        x : int
+            Setting of Alice.
+        y : int
+            Setting of Bob.
+        P : array-like
+            Array containing joint probabilities P(a, b | x, y).
+    
+        Returns
+        -------
+        float
+            Probability of outcome (a=0, b=0) for settings x, y.
+        """
+        return P[self.pos(0, 0, x, y)]
+
+    
+     def solve_CHSH(self):
+         """
+        Calculates the maximum value of the CHSH inequality. Only valid for k = 2, m=2.
+        In this version a in (0,1) so the local bound is 0
+    
+        Parameters
+        ----------
+        none
+    
+        Returns
+        -------
+        prints the maximum value of the CHSH inequality.
+        """
+        if (self.kx ==2 and self.ky == 2 and self.ma ==2 and self.mb ==2 and BR = 'True'):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.mc, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.add_ns_constraints( P_twin, problem, index_map)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            self.constrain_BR2(P, P_ab, problem)
+            
+            CHSH = self.P00(0,0,P_ab) + self.P00(0,1,P_ab) + self.P00(1,0,P_ab) - self.P00(1,1,P_ab) - self.PA0(0,P_ab) - self.PB0(0,P_ab)
+
+            problem.set_objective('max', CHSH)
+            problem.solve(solver=self.solver)  # SCS/ECOS también funcionan
+            print("Max value of CHSH:", CHSH.value)
+            
+        else:
+            print("CHSH for TW with A,B,E only defined for ma=mb=2 and kx=ky=2 and Bound Randomness constrain")
+
+    
+    
+    def solve_I3322(self):
+        """
+        Calculates the maximum value of the I3322 inequality. Only valid for k = 3, m=2.
+        In this version a in (0,1) so the local bound is 0
+    
+        Parameters
+        ----------
+        none
+    
+        Returns
+        -------
+        prints the maximum value of the I3322 inequality.
+        """
+        if (self.kx ==3 and self.ky == 3 and self.ma ==2 and self.mb ==2):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.mc, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            self.constrain_BR2(P, P_ab, problem)
+            self.add_ns_constraints( P_twin, problem, index_map)
+    
+    
+            I3322= (
+                    + self.P00(0,0,P) + self.P00(0,1,P) + self.P00(0,2,P)
+                    + self.P00(1,0,P) + self.P00(1,1,P) - self.P00(1,2,P)
+                    + self.P00(2,0,P) - self.P00(2,1,P)
+                    - self.PA0(0,P) 
+                    - 2*self.PB0(0,P) - self.PB0(1,P)
+                )
+    
+            problem.set_objective('max', I3322)
+            problem.solve(solver=self.solver) 
+            print("Max value of I3322:", I3322.value)
+        else:
+            print("I3322 for TW with A,B,E only defined for ma=mb=2 and kx=ky=3 and Bound Randomness constrain")
             
     
 #%%
 if __name__ == "__main__":
-    tw = TW_abe(ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek')
-    tw.solve_I3_3()
+    #tw = TW_AB_E(ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek')
+    #tw.solve_I3_3()
+    tw = TW_AB_E(ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek', BR = 'True')
+    tw.solve_I3322()
     
 # %%
