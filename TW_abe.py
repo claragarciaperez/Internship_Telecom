@@ -470,129 +470,18 @@ class TW_abe ():
             print("Max value of Svetlichny:", S.value)
         else: 
             print("Svetlichny only defined for ma=mb=me=2 and kx=ky=kz=2")
-    
-        
-    def mod_expectation(self, x, y, z, P, d):
-        """
-        Computes the modular expectation value of the combination [A_x - B_y + E_z].
-    
-        Mathematically, this is:
-        
-            < [A_x - B_y + E_z] > = sum_k k * P( (a - b + e) mod d = k | x, y, z )
-    
-        Parameters
-        ----------
-        x : int
-            Measurement setting for party A
-        y : int
-            Measurement setting for party B
-        z : int
-            Measurement setting for party E
-        P : array-like
-            Probability array indexed by `self.pos(a,b,e,x,y,z)`.
-        d : int
-            Number of outcomes
-    
-        Returns
-        -------
-        float
-            Modular expectation value of [A_x - B_y + E_z].
-        """
-        expr = 0
-        
-        for a in range(self.ma):
-            for b in range(self.mb):
-                for e in range(self.me):
-                    
-                    k = (a - b + e) % d   
-                    
-                    expr += k * P[self.pos(a,b,e,x,y,z)]
-                    
-        return expr
-    
-    def mod_expectation_shiftA(self, x, y, z, P, d):
-        """
-        Computes the modular expectation value of the combination [B_y - A_{x+1} - C_z].
-    
-        The measurement setting of party A is shifted by +1 (modulo the number of settings).
-        Mathematically, this is:
-    
-            < [B_y - A_{x+1} - E_z] > = sum_k k * P( (b - a - e) mod d = k | x+1, y, z )
-    
-        Parameters
-        ----------
-        x : int
-            Measurement setting for party A
-        y : int
-            Measurement setting for party B
-        z : int
-            Measurement setting for party E
-        P : array-like
-            Probability array indexed by `self.pos(a,b,e,x,y,z)`.
-        d : int
-            Modulus for the combination (usually the number of outcomes)
-    
-        Returns
-        -------
-        float
-            Modular expectation value of [B_y - A_{x+1} - E_z].
-        """
-        expr = 0
-        x_shift = (x + 1) % self.kx
-        
-        for a in range(self.ma):
-            for b in range(self.mb):
-                for e in range(self.me):
-                    
-                    k = (b - a - e) % d
-                    
-                    expr += k * P[self.pos(a,b,e,x_shift,y,z)]
-                    
-        return expr
-    
-    def tripartite_inequality(self, P, d):
-        """
-        Computes the tripartite modular Bell-like inequality for a given probability distribution.
-    
-        The inequality is computed as a sum over shifted modular expectation values
-        for parties A, B, and E. Specifically, it sums over alpha and beta settings,
-        combining the standard and A-shifted modular expectation values:
-    
-            I = sum_{alpha, beta} < [A_x - B_y + E_z] > + < [B_y - A_{x+1} - E_z] >
-    
-        where x = alpha-1, y = (alpha+beta-1-1) % kx, z = beta-1.
-    
-        Parameters
-        ----------
-        P : array-like
-            Probability array indexed by `self.pos(a,b,e,x,y,z)`.
-        d : int
-            Modulus for the combination (usually the number of outcomes).
-    
-        Returns
-        -------
-        float
-            Value of the tripartite inequality I for the given probability distribution P.
-        """
-        
-        I = 0
-        
-        for alpha in range(1,self.kx+1):
-            for beta in range(1,self.kx+1):
-                
-                x = alpha
-                y = (alpha + beta-1) % self.kx
-                z = beta
 
-                x = x-1
-                y = y-1
-                z = z-1
-                
-                I += self.mod_expectation(x, y, z, P, d)
-                
-                I += self.mod_expectation_shiftA(x, y, z, P, d)
-        
-        return I
+    
+    def inequality_k3(self, P):
+        return (
+            self.E(1,1,2,P) + self.E(1,2,1,P) + self.E(2,1,1,P)
+            -2*(self.E(1,0,0,P) + self.E(0,1,0,P) + self.E(0,0,1,P))
+            +self.E(1,1,0,P) + self.E(0,1,1,P) + self.E(1,0,1,P)
+            -(self.E(2,2,0,P) + self.E(2,0,2,P) +self.E(0,2,2,P) )
+            + self.E(2,1,0,P) + self.E(2,0,1,P) + self.E(1,0,2,P)
+            +self.E(1,2,0,P) + self.E(0,1,2,P) + self.E(0,2,1,P)
+            +2*self.E(0,0,0,P) + 4*self.E(1,1,1,P) - self.E(2,2,2,P)
+        )/8
     
     def solve_I3_3(self):
         """
@@ -617,14 +506,12 @@ class TW_abe ():
             self.add_ns_constraints( P_twin, problem, index_map)
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem, index_map)
-
-            d = self.ma
     
-            I = self.tripartite_inequality(P, d=d)
+            I = self.inequality_k3(P)
     
-            problem.set_objective('min', I) 
+            problem.set_objective('max', I) 
             problem.solve(solver=self.solver)  
-            print("Min value of the inequality:", I.value)
+            print("Max value of the inequality:", I.value)
         else:
             print("I^3_3 only defined for ma=mb=me=2 and kx=ky=kz=3")
             
