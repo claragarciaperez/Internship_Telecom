@@ -33,13 +33,13 @@ class TW_AB_E():
     def __init__(self, ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek', BR = 'False'):
         self.ma = ma
         self.mb = mb
-        if BR:
+        if BR=='True':
             self.me = ma*mb
         else: 
             self.me = me
         self.kx = kx
         self.ky = ky
-        if BR:
+        if BR == 'True':
             self.kz = kx*ky
         else: 
             self.kz = kz
