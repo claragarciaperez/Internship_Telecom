@@ -723,6 +723,53 @@ class TW_AB_E():
             print("Max value of I3322:", I3322.value)
         else:
             print("I3322 for TW with A,B,E only defined for ma=mb=2 and kx=ky=3 and Bound Randomness constrain")
+     def solve_I4422(self):
+        """
+        Calculates the maximum value of the I4422 inequality. Only valid for k = 4, m=2.
+        https://arxiv.org/pdf/quant-ph/0306129
+
+        Note: NS and normalization only aplied in p(abe|xyz) not it p(aa'bb'e|xx'yy'z)
+        
+        Parameters
+        ----------
+        none
+    
+        Returns
+        -------
+        prints the maximum value of the I4422 inequality.
+        """
+        if (self.kx ==4 and self.ky == 4 and self.ma ==2 and self.mb ==2):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            #self.add_ns_constraints( P_twin, problem, index_map)
+            self.add_ns_constraints_P( P, problem)
+            #self.normalization_P(P, problem)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, P_ab, problem)
+            
+
+            I4422= (
+                + self.P00(0,0,P_ab) + self.P00(0,1,P_ab) + self.P00(0,2,P_ab) + self.P00(0,3,P_ab)
+                + self.P00(1,0,P_ab) + self.P00(1,1,P_ab) + self.P00(1,2,P_ab)- self.P00(1,3,P_ab)
+                + self.P00(2,0,P_ab) + self.P00(2,1,P_ab) - self.P00(2,2,P_ab)
+                + self.P00(3,0,P_ab) - self.P00(3,1,P_ab)
+
+                - self.PA0(0,P_ab) 
+                - 3*self.PB0(0,P_ab) - 2*self.PB0(1,P_ab) - self.PB0(2,P_ab)
+            )
+
+            problem.set_objective('max', I4422)
+            problem.solve(solver=self.solver) 
+            print("Maximum value of I4422:", I4422.value)
+        else:
+            print("I4422 only defined for ma=mb=2 and kx=ky=4")
+    
             
     
 
