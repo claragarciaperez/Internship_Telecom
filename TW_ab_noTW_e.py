@@ -661,7 +661,7 @@ class TW_AB_E():
         prints the maximum value of the CHSH inequality.
         """
 
-        if(self.kx ==2 and self.ky == 2 and self.ma ==2 and self.mb ==2 and self.BR == 'True'):
+        if(self.kx ==2 and self.ky == 2 and self.ma ==2 and self.mb ==2):
             problem = pc.Problem (verbosity =1)
             P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
             P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
@@ -671,7 +671,8 @@ class TW_AB_E():
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem, index_map)
             self.constrain_BR1(P, P_ab, problem)
-            self.constrain_BR2(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, P_ab, problem)
             
             CHSH = self.P00(0,0,P_ab) + self.P00(0,1,P_ab) + self.P00(1,0,P_ab) - self.P00(1,1,P_ab) - self.PA0(0,P_ab) - self.PB0(0,P_ab)
 
@@ -697,7 +698,7 @@ class TW_AB_E():
         -------
         prints the maximum value of the I3322 inequality.
         """
-        if (self.kx ==3 and self.ky == 3 and self.ma ==2 and self.mb ==2 and self.BR == 'True'):
+        if (self.kx ==3 and self.ky == 3 and self.ma ==2 and self.mb ==2 ):
             problem = pc.Problem (verbosity =1)
             P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
             P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
@@ -706,7 +707,8 @@ class TW_AB_E():
             self.normalization_twin(P_twin, problem, index_map)
             self.relate_P_twin_P(P_twin, P, problem, index_map)
             self.constrain_BR1(P, P_ab, problem)
-            self.constrain_BR2(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, P_ab, problem)
             self.add_ns_constraints( P_twin, problem, index_map)
     
     
