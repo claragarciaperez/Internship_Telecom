@@ -769,6 +769,144 @@ class TW_AB_E():
             print("Maximum value of I4422:", I4422.value)
         else:
             print("I4422 only defined for ma=mb=2 and kx=ky=4")
+            
+     def solve_choose(self, index):
+        """
+        Calculates the maximum value of an inequality, given by the index of paper
+        https://doi.org/10.1103/PhysRevA.99.022104
+        
+        Parameters
+        ----------
+        index : int
+            Index of the inequality to be solved. 0 for CHSH, 1 for I3322,... (See paper, where 1-->0, 2-->1...)
+    
+        Returns
+        -------
+        prints the maximum value of the inequality.
+        """
+        line = []
+
+        with open('DATA_APS.txt', "r") as f:
+            for i, linea in enumerate(f):
+                if i == index:
+                    line = [int(x) for x in linea.split()]
+                    break
+        d,c,e = self.organize_index(line)
+        
+        if (self.kx ==2 and self.ky == 2 and self.ma ==2 and self.mb ==2 and index == 0):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.add_ns_constraints( P_twin, problem, index_map)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, problem)
+
+            
+            CHSH = d[0,0]*self.P00(0,0,P_ab) + d[0,1]*self.P00(0,1,P_ab) + d[1,0]*self.P00(1,0,P_ab) + d[1,1]*self.P00(1,1,P_ab) + c[0]*self.PA0(0,P_ab) + c[1]*self.PA0(1,P_ab) + e[0]*self.PB0(0,P_ab) + e[1]*self.PB0(1,P_ab)
+
+    
+            problem.set_objective('max', CHSH)
+            problem.solve(solver=self.solver)  # SCS/ECOS también funcionan
+            print("Max value of CHSH:", CHSH.value)
+
+
+        if (self.kx ==3 and self.ky == 3 and self.ma ==2 and self.mb ==2 and index ==1):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.normalization_twin(P_twin, problem, index_map)
+            #self.normalization_P(P, problem)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, problem)
+            self.add_ns_constraints( P_twin, problem, index_map)
+
+            print(n_vars)
+    
+    
+            I3322= (
+                    + d[0,0]*self.P00(0,0,P_ab) + d[0,1]*self.P00(0,1,P_ab) + d[0,2]*self.P00(0,2,P_ab)
+                    + d[1,0]*self.P00(1,0,P_ab) + d[1,1]*self.P00(1,1,P_ab) + d[1,2]*self.P00(1,2,P_ab)
+                    + d[2,0]*self.P00(2,0,P_ab) + d[2,1]*self.P00(2,1,P_ab) + d[2,2]*self.P00(2,2,P_ab)
+                    + c[0]*self.PA0(0,P_ab) + c[1]*self.PA0(1,P_ab) + c[2]*self.PA0(2,P_ab)
+                    + e[0]*self.PB0(0,P_ab) + e[1]*self.PB0(1,P_ab) + e[2]*self.PB0(2,P_ab)
+                )
+    
+            problem.set_objective('max', I3322)
+            problem.solve(solver=self.solver) 
+            print("Max value of I3322:", I3322.value)
+
+        if (self.kx ==4 and self.ky == 3 and self.ma ==2 and self.mb ==2 and index >=2 and index <5):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            self.normalization_twin(P_twin, problem, index_map)
+            #self.normalization_P(P, problem)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            #self.add_ns_constraints_P( P, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, problem)
+            self.add_ns_constraints( P_twin, problem, index_map)
+
+            print(n_vars)
+
+
+    
+    
+            I4322= (
+                    + d[0,0]*self.P00(0,0,P_ab) + d[0,1]*self.P00(0,1,P_ab) + d[0,2]*self.P00(0,2,P_ab) 
+                    + d[1,0]*self.P00(1,0,P_ab) + d[1,1]*self.P00(1,1,P_ab) + d[1,2]*self.P00(1,2,P_ab)
+                    + d[2,0]*self.P00(2,0,P_ab) + d[2,1]*self.P00(2,1,P_ab) + d[2,2]*self.P00(2,2,P_ab) 
+                    + d[3,0]*self.P00(3,0,P_ab) + d[3,1]*self.P00(3,1,P_ab) + d[3,2]*self.P00(3,2,P_ab) 
+                    + c[0]*self.PA0(0,P_ab) + c[1]*self.PA0(1,P_ab) + c[2]*self.PA0(2,P_ab) + c[3]*self.PA0(3,P_ab)
+                    + e[0]*self.PB0(0,P_ab) + e[1]*self.PB0(1,P_ab) + e[2]*self.PB0(2,P_ab) 
+                )
+    
+            problem.set_objective('max', I4322)
+            problem.solve(solver=self.solver) 
+            print("Max value of I4322:", I4322.value)
+
+        if (self.kx ==4 and self.ky == 4 and self.ma ==2 and self.mb ==2 and index >=5):
+            problem = pc.Problem (verbosity =1)
+            P = pc.RealVariable("P", (self.ma*self.mb*self.me, self.kx*self.ky*self.kz), lower=0, upper=1)
+            P_ab = pc.RealVariable("P_ab", (self.ma*self.mb, self.kx*self.ky), lower=0, upper=1)
+            index_map, n_vars = self.build_index_map()
+            P_twin = pc.RealVariable("P_twin_reduced", n_vars, lower=0, upper=1)
+            #self.add_ns_constraints( P_twin, problem, index_map)
+            self.add_ns_constraints_P( P, problem)
+            #self.normalization_P(P, problem)
+            self.normalization_twin(P_twin, problem, index_map)
+            self.relate_P_twin_P(P_twin, P, problem, index_map)
+            self.constrain_BR1(P, P_ab, problem)
+            if self.BR == 'True':
+                self.constrain_BR2(P, problem)
+
+        
+            I4422= (
+                    + d[0,0]*self.P00(0,0,P_ab) + d[0,1]*self.P00(0,1,P_ab) + d[0,2]*self.P00(0,2,P_ab) + d[0,3]*self.P00(0,3,P_ab)
+                    + d[1,0]*self.P00(1,0,P_ab) + d[1,1]*self.P00(1,1,P_ab) + d[1,2]*self.P00(1,2,P_ab) + d[1,3]*self.P00(1,3,P_ab)
+                    + d[2,0]*self.P00(2,0,P_ab) + d[2,1]*self.P00(2,1,P_ab) + d[2,2]*self.P00(2,2,P_ab) + d[2,3]*self.P00(2,3,P_ab)
+                    + d[3,0]*self.P00(3,0,P_ab) + d[3,1]*self.P00(3,1,P_ab) + d[3,2]*self.P00(3,2,P_ab) + d[3,3]*self.P00(3,3,P_ab)
+                    + c[0]*self.PA0(0,P_ab) + c[1]*self.PA0(1,P_ab) + c[2]*self.PA0(2,P_ab) + c[3]*self.PA0(3,P_ab)
+                    + e[0]*self.PB0(0,P_ab) + e[1]*self.PB0(1,P_ab) + e[2]*self.PB0(2,P_ab) + e[3]*self.PB0(3,P_ab)
+                )
+
+            problem.set_objective('max', I4422)
+            problem.solve(solver=self.solver) 
+            print("Maximum value of I4422:", I4422.value)
+     
+    
     
             
     
