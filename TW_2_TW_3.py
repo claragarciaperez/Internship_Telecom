@@ -36,7 +36,7 @@ class TW_vers_2_3():
 
     
     """
-    def __init__(self, ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek', BR = 'False'):
+    def __init__(self, ma=2, mb=2, me=2, kx=3, ky=3, kz=3, solver = 'mosek', BR = 'False', version =3):
         self.ma = ma
         self.mb = mb
         if BR=='True':
@@ -55,6 +55,7 @@ class TW_vers_2_3():
         self.outputs_twin = list(product(range(self.ma),range(self.ma), range(self.mb), range(self.mb), range(self.me)))
         self.inputs_twin = list(product(range(self.kx), range(self.kx),range(self.ky), range(self.ky), range(self.kz)))
         self.solver = solver
+        self.version = version
     
     def pos(self, a, b, e, x, y, z):
         """
